@@ -2,29 +2,134 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BMI 计算器</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #fff 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', 'PingFang SC', 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bmi-container {
+      background: #fff;
+      padding: 2.5rem 2rem;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.13);
+      max-width: 350px;
+      width: 95vw;
+      margin: 2rem 0;
+      text-align: center;
+    }
+    h2 {
+      margin-bottom: 1.5rem;
+      color: #4f46e5;
+      letter-spacing: 2px;
+      font-size: 1.6rem;
+    }
+    label {
+      display: block;
+      margin-bottom: 1.1rem;
+      font-size: 1rem;
+      color: #444;
+      text-align: left;
+    }
+    input[type="number"] {
+      padding: 0.4rem 0.7rem;
+      margin-left: 0.5rem;
+      border: 1px solid #c7d2fe;
+      border-radius: 6px;
+      outline: none;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 140px;
+      box-sizing: border-box;
+    }
+    input[type="number"]:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 6px #c7d2fe80;
+    }
+    button {
+      margin-top: 0.7rem;
+      padding: 0.55rem 1.4rem;
+      background: linear-gradient(90deg, #6366f1 0%, #818cf8 100%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 8px 0 #818cf838;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
+      box-shadow: 0 4px 16px 0 #6366f140;
+    }
+    #result {
+      margin-top: 1.5rem;
+      min-height: 2.5rem;
+      font-size: 1.1rem;
+      color: #333;
+    }
+    .bmi-level {
+      margin-top: 0.4rem;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #6366f1;
+    }
+    @media (max-width: 600px) {
+      .bmi-container {
+        padding: 1.3rem 0.7rem;
+        max-width: 95vw;
+      }
+      input[type="number"] {
+        width: 90px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2>BMI 计算器</h2>
-  <form id="bmiForm">
-    <label>
-      身高（cm）: <input type="number" id="height" required>
-    </label>
-    <br>
-    <label>
-      体重（kg）: <input type="number" id="weight" required>
-    </label>
-    <br>
-    <button type="submit">计算</button>
-  </form>
-  <div id="result"></div>
+  <div class="bmi-container">
+    <h2>BMI 计算器</h2>
+    <form id="bmiForm" autocomplete="off">
+      <label>
+        身高（cm）: <input type="number" id="height" required min="50" max="250" step="0.1" placeholder="如 170">
+      </label>
+      <label>
+        体重（kg）: <input type="number" id="weight" required min="10" max="300" step="0.1" placeholder="如 65">
+      </label>
+      <button type="submit">计算</button>
+    </form>
+    <div id="result"></div>
+    <div class="bmi-level" id="bmiLevel"></div>
+  </div>
 
   <script>
+    function getBmiLevel(bmi) {
+      if (bmi < 18.5) return "偏瘦";
+      if (bmi < 24) return "正常";
+      if (bmi < 28) return "超重";
+      return "肥胖";
+    }
+    function getBmiLevelColor(bmi) {
+      if (bmi < 18.5) return "#f59e42";
+      if (bmi < 24) return "#10b981";
+      if (bmi < 28) return "#fbbf24";
+      return "#ef4444";
+    }
+
     document.getElementById('bmiForm').onsubmit = async function (e) {
       e.preventDefault();
       const height = Number(document.getElementById('height').value);
       const weight = Number(document.getElementById('weight').value);
-      document.getElementById('result').innerText = '计算中...';
+      const resultDiv = document.getElementById('result');
+      const levelDiv = document.getElementById('bmiLevel');
+      resultDiv.innerText = '计算中...';
+      levelDiv.innerText = '';
+      levelDiv.style.color = "#6366f1";
 
       try {
         const res = await fetch('https://bmi-worker.yicuilin123.workers.dev', {
@@ -34,12 +139,16 @@
         });
         const data = await res.json();
         if (data.bmi) {
-          document.getElementById('result').innerText = `你的 BMI 是：${data.bmi}`;
+          resultDiv.innerText = `你的 BMI 是：${data.bmi}`;
+          const bmiNum = parseFloat(data.bmi);
+          const level = getBmiLevel(bmiNum);
+          levelDiv.innerText = `体型：${level}`;
+          levelDiv.style.color = getBmiLevelColor(bmiNum);
         } else {
-          document.getElementById('result').innerText = '计算失败：' + (data.error || '未知错误');
+          resultDiv.innerText = '计算失败：' + (data.error || '未知错误');
         }
       } catch (err) {
-        document.getElementById('result').innerText = '网络错误或API不可用';
+        resultDiv.innerText = '网络错误或API不可用';
       }
     };
   </script>
