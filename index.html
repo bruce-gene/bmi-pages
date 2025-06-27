@@ -154,7 +154,7 @@
       return { label: "肥胖", color: "#ef4444" };
     }
 
-    // 绘制完整半圆仪表盘
+    // 真正半圆仪表盘
     function renderGauge(bmi) {
       const minBMI = 10, maxBMI = 40;
       const angleRange = 180;
@@ -166,8 +166,10 @@
       ];
       // 指针角度
       let value = Math.max(minBMI, Math.min(maxBMI, bmi));
-      let pointerAngle = ((value - minBMI) / (maxBMI - minBMI)) * angleRange;
-      let pointerRadian = (pointerAngle - 90) * Math.PI / 180;
+      // 0=最左(180deg), 1=最右(0deg)
+      let t = (value - minBMI) / (maxBMI - minBMI);
+      let pointerAngle = 180 - t * 180; // 180(左)-0(右)
+      let pointerRadian = pointerAngle * Math.PI / 180;
       // 仪表盘主半圆参数
       const cx = 170, cy = 170, r = 120, pointerLen = 96;
       // 刻度标签
@@ -188,27 +190,31 @@
         </defs>
         <!-- 仪表盘色区 -->
         ${levels.map(lv => {
-          let startAngle = ((lv.from - minBMI) / (maxBMI - minBMI)) * angleRange;
-          let endAngle = ((lv.to - minBMI) / (maxBMI - minBMI)) * angleRange;
-          let largeArc = endAngle - startAngle > 90 ? 1 : 0;
-          let x1 = cx + r * Math.cos((Math.PI * (startAngle - 90)) / 180);
-          let y1 = cy + r * Math.sin((Math.PI * (startAngle - 90)) / 180);
-          let x2 = cx + r * Math.cos((Math.PI * (endAngle - 90)) / 180);
-          let y2 = cy + r * Math.sin((Math.PI * (endAngle - 90)) / 180);
+          // 区块角度
+          let t1 = (lv.from - minBMI) / (maxBMI - minBMI);
+          let t2 = (lv.to - minBMI) / (maxBMI - minBMI);
+          let startAngle = 180 - t1 * 180;
+          let endAngle = 180 - t2 * 180;
+          let largeArc = Math.abs(endAngle - startAngle) > 90 ? 1 : 0;
+          let x1 = cx + r * Math.cos(startAngle * Math.PI / 180);
+          let y1 = cy + r * Math.sin(startAngle * Math.PI / 180);
+          let x2 = cx + r * Math.cos(endAngle * Math.PI / 180);
+          let y2 = cy + r * Math.sin(endAngle * Math.PI / 180);
           return `<path d="M${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}" stroke="${lv.color}" stroke-width="22" fill="none"/>`;
         }).join('')}
         <!-- 刻度和标签 -->
         ${ticks.map((tick, i) => {
-          let ang = ((tick.v - minBMI) / (maxBMI - minBMI)) * angleRange;
+          let tt = (tick.v - minBMI) / (maxBMI - minBMI);
+          let ang = 180 - tt * 180;
           let r1 = 134, r2 = 146;
-          let xt = cx + r1 * Math.cos((Math.PI * (ang - 90)) / 180);
-          let yt = cy + r1 * Math.sin((Math.PI * (ang - 90)) / 180);
-          let xl = cx + r2 * Math.cos((Math.PI * (ang - 90)) / 180);
-          let yl = cy + r2 * Math.sin((Math.PI * (ang - 90)) / 180);
+          let xt = cx + r1 * Math.cos(ang * Math.PI / 180);
+          let yt = cy + r1 * Math.sin(ang * Math.PI / 180);
+          let xl = cx + r2 * Math.cos(ang * Math.PI / 180);
+          let yl = cy + r2 * Math.sin(ang * Math.PI / 180);
           // 标签位置
-          let lblR = 154;
-          let lblX = cx + lblR * Math.cos((Math.PI * (ang - 90)) / 180);
-          let lblY = cy + lblR * Math.sin((Math.PI * (ang - 90)) / 180) + 8;
+          let lblR = 156;
+          let lblX = cx + lblR * Math.cos(ang * Math.PI / 180);
+          let lblY = cy + lblR * Math.sin(ang * Math.PI / 180) + 8;
           return `
             <line x1="${xt}" y1="${yt}" x2="${xl}" y2="${yl}" stroke="#b4bbda" stroke-width="2"/>
             <text x="${lblX}" y="${lblY}" text-anchor="middle" font-size="13" fill="#8894b5">${tick.label}</text>
@@ -216,7 +222,7 @@
         }).join('')}
         <!-- 指针阴影 -->
         <circle cx="${cx + pointerLen * Math.cos(pointerRadian)}" cy="${cy + pointerLen * Math.sin(pointerRadian)}" r="11" fill="url(#pointer-shadow)" opacity="0.39"/>
-        <!-- 指针主体（美化箭头形状） -->
+        <!-- 指针主体（箭头） -->
         <g>
           <circle cx="${cx}" cy="${cy}" r="10" fill="#6366f1" opacity="0.15"/>
           <polygon points="
