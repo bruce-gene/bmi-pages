@@ -16,11 +16,11 @@
     }
     .bmi-container {
       background: #fff;
-      padding: 2.8rem 2.2rem 2.8rem 2.2rem;
+      padding: 3.2rem 2.2rem 2.6rem 2.2rem;
       border-radius: 22px;
       box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.17);
-      max-width: 430px;
-      width: 100vw;
+      max-width: 460px;
+      width: 98vw;
       margin: 3rem 0;
       text-align: center;
       transition: box-shadow 0.25s;
@@ -71,14 +71,14 @@
       box-shadow: 0 4px 16px 0 #6366f150;
     }
     #result {
-      margin-top: 1.7rem;
+      margin-top: 1.8rem;
       min-height: 2.2rem;
-      font-size: 1.19rem;
-      color: #333;
+      font-size: 1.21rem;
+      color: #222;
       font-weight: 600;
     }
     .bmi-gauge {
-      margin: 2rem 0 0.6rem 0;
+      margin: 2.2rem 0 1.1rem 0;
       width: 100%;
       display: flex;
       justify-content: center;
@@ -86,27 +86,27 @@
     .bmi-legend {
       display: flex;
       justify-content: space-between;
-      font-size: 0.98rem;
+      font-size: 1.01rem;
       color: #555;
-      margin: 0.2rem 0 1.1rem 0;
-      max-width: 310px;
+      margin: 0.2rem 0 1.2rem 0;
+      max-width: 340px;
       margin-left: auto;
       margin-right: auto;
+      font-weight: 500;
     }
     .bmi-legend span {
       width: 24%;
       text-align: center;
-      font-weight: 500;
       letter-spacing: 1px;
     }
     @media (max-width: 700px) {
       .bmi-container {
-        padding: 1.1rem 0.4rem;
+        padding: 1.2rem 0.3rem;
         max-width: 99vw;
-        margin: 0.7rem 0;
+        margin: 0.8rem 0;
       }
       .bmi-gauge {
-        margin: 1.2rem 0 0.4rem 0;
+        margin: 1.2rem 0 0.7rem 0;
       }
       input[type="number"] {
         width: 70px;
@@ -138,6 +138,7 @@
   </div>
 
   <script>
+    // 半圆仪表盘参数
     function getBmiLevel(bmi) {
       if (bmi < 18.5) return { label: "偏瘦", color: "#f97316" };
       if (bmi < 24) return { label: "正常", color: "#10b981" };
@@ -145,63 +146,60 @@
       return { label: "肥胖", color: "#ef4444" };
     }
 
-    // 绘制仪表盘
+    // 画完整半圆仪表盘
     function renderGauge(bmi) {
-      const minBMI = 16, maxBMI = 40;
+      const minBMI = 10, maxBMI = 40; // 半圆两端
       const angleRange = 180;
       const levels = [
-        { from: 16, to: 18.5, color: "#f97316" },  // 偏瘦 orange
+        { from: 10, to: 18.5, color: "#f97316" },  // 偏瘦 orange
         { from: 18.5, to: 24, color: "#10b981" },  // 正常 green
         { from: 24, to: 28, color: "#fbbf24" },    // 超重 yellow
         { from: 28, to: 40, color: "#ef4444" },    // 肥胖 red
       ];
-      // 计算指针角度
+      // 指针角度
       let value = Math.max(minBMI, Math.min(maxBMI, bmi));
       let pointerAngle = ((value - minBMI) / (maxBMI - minBMI)) * angleRange;
       let pointerRadian = (pointerAngle - 90) * Math.PI / 180;
-
-      // 仪表盘SVG
-      let svg = `<svg width="320" height="175" viewBox="0 0 320 175">
+      // SVG
+      let svg = `<svg width="340" height="185" viewBox="0 0 340 185">
         <defs>
-          <linearGradient id="bmi-bg" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#f97316"/>
-            <stop offset="46%" stop-color="#10b981"/>
-            <stop offset="70%" stop-color="#fbbf24"/>
-            <stop offset="100%" stop-color="#ef4444"/>
-          </linearGradient>
+          <radialGradient id="pointer-shadow" cx="50%" cy="80%" r="80%">
+            <stop offset="0%" stop-color="#6366f1" stop-opacity="0.17"/>
+            <stop offset="80%" stop-color="#6366f1" stop-opacity="0"/>
+          </radialGradient>
         </defs>
         ${levels.map(lv => {
-          // 仪表盘各区块路径
+          // 区块路径
           let startAngle = ((lv.from - minBMI) / (maxBMI - minBMI)) * angleRange;
           let endAngle = ((lv.to - minBMI) / (maxBMI - minBMI)) * angleRange;
           let largeArc = endAngle - startAngle > 90 ? 1 : 0;
-          let r = 110, cx = 160, cy = 150;
+          let r = 120, cx = 170, cy = 170;
           let x1 = cx + r * Math.cos((Math.PI * (startAngle - 90)) / 180);
           let y1 = cy + r * Math.sin((Math.PI * (startAngle - 90)) / 180);
           let x2 = cx + r * Math.cos((Math.PI * (endAngle - 90)) / 180);
           let y2 = cy + r * Math.sin((Math.PI * (endAngle - 90)) / 180);
-          return `
-            <path d="M${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}" stroke="${lv.color}" stroke-width="18" fill="none"/>
-          `;
+          return `<path d="M${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2}" stroke="${lv.color}" stroke-width="22" fill="none"/>`;
         }).join('')}
         <!-- 刻度 -->
-        ${[16,18.5,24,28,40].map((val,i)=>{
+        ${[10,18.5,24,28,40].map((val,i)=>{
           let ang = ((val - minBMI) / (maxBMI - minBMI)) * angleRange;
-          let r1=122,r2=130,cx=160,cy=150;
+          let r1=130,r2=138,cx=170,cy=170;
           let x1 = cx + r1 * Math.cos((Math.PI * (ang - 90)) / 180);
           let y1 = cy + r1 * Math.sin((Math.PI * (ang - 90)) / 180);
           let x2 = cx + r2 * Math.cos((Math.PI * (ang - 90)) / 180);
           let y2 = cy + r2 * Math.sin((Math.PI * (ang - 90)) / 180);
-          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#ccc" stroke-width="2"/>`;
+          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#b4bbda" stroke-width="2"/>`;
         }).join('')}
+        <!-- 指针阴影 -->
+        <circle cx="${170+95*Math.cos(pointerRadian)}" cy="${170+95*Math.sin(pointerRadian)}" r="12" fill="url(#pointer-shadow)" opacity="0.43"/>
         <!-- 指针 -->
         <g>
-          <circle cx="160" cy="150" r="10" fill="#6366f1" opacity="0.10"/>
-          <line x1="160" y1="150" x2="${160+95*Math.cos(pointerRadian)}" y2="${150+95*Math.sin(pointerRadian)}" stroke="#6366f1" stroke-width="6" stroke-linecap="round"/>
-          <circle cx="${160+95*Math.cos(pointerRadian)}" cy="${150+95*Math.sin(pointerRadian)}" r="7" fill="#6366f1"/>
+          <circle cx="170" cy="170" r="10" fill="#6366f1" opacity="0.12"/>
+          <line x1="170" y1="170" x2="${170+98*Math.cos(pointerRadian)}" y2="${170+98*Math.sin(pointerRadian)}" stroke="#6366f1" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="${170+98*Math.cos(pointerRadian)}" cy="${170+98*Math.sin(pointerRadian)}" r="9" fill="#6366f1"/>
         </g>
         <!-- BMI 文字 -->
-        <text x="160" y="120" text-anchor="middle" font-size="22" font-weight="bold" fill="#222">BMI = ${bmi.toFixed(1)}</text>
+        <text x="170" y="110" text-anchor="middle" font-size="29" font-weight="bold" fill="#222">BMI = ${bmi.toFixed(1)}</text>
       </svg>`;
       return svg;
     }
@@ -224,7 +222,8 @@
         const data = await res.json();
         if (data.bmi) {
           const bmiNum = parseFloat(data.bmi);
-          resultDiv.innerHTML = `你的 BMI 是：<span style="color:#6366f1">${bmiNum}</span>，体型：<b style="color:${getBmiLevel(bmiNum).color}">${getBmiLevel(bmiNum).label}</b>`;
+          const levelInfo = getBmiLevel(bmiNum);
+          resultDiv.innerHTML = `你的 <b>BMI</b> 是：<b style="color:#6366f1">${bmiNum}</b>，体型：<b style="color:${levelInfo.color}">${levelInfo.label}</b>`;
           gaugeBox.innerHTML = renderGauge(bmiNum);
         } else {
           resultDiv.innerText = '计算失败：' + (data.error || '未知错误');
