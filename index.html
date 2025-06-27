@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>BMI 计算器</title>
+</head>
+<body>
+  <h2>BMI 计算器</h2>
+  <form id="bmiForm">
+    <label>
+      身高（cm）: <input type="number" id="height" required>
+    </label>
+    <br>
+    <label>
+      体重（kg）: <input type="number" id="weight" required>
+    </label>
+    <br>
+    <button type="submit">计算</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    document.getElementById('bmiForm').onsubmit = async function (e) {
+      e.preventDefault();
+      const height = Number(document.getElementById('height').value);
+      const weight = Number(document.getElementById('weight').value);
+      document.getElementById('result').innerText = '计算中...';
+
+      try {
+        const res = await fetch('你的worker地址', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ height, weight })
+        });
+        const data = await res.json();
+        if (data.bmi) {
+          document.getElementById('result').innerText = `你的 BMI 是：${data.bmi}`;
+        } else {
+          document.getElementById('result').innerText = '计算失败：' + (data.error || '未知错误');
+        }
+      } catch (err) {
+        document.getElementById('result').innerText = '网络错误或API不可用';
+      }
+    };
+  </script>
+</body>
+</html>
