@@ -27,7 +27,7 @@
       document.getElementById('result').innerText = '计算中...';
 
       try {
-        const res = await fetch('你的worker地址', {
+        const res = await fetch('https://bmi-worker.yicuilin123.workers.dev', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ height, weight })
