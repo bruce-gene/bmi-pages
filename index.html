@@ -16,7 +16,7 @@
     }
     .bmi-container {
       background: #fff;
-      padding: 2.8rem 2.1rem 2.5rem 2.1rem;
+      padding: 2.6rem 2.1rem 2.1rem 2.1rem;
       border-radius: 22px;
       box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.14);
       max-width: 470px;
@@ -24,7 +24,7 @@
       margin: 2.5rem 0;
       text-align: center;
       transition: box-shadow 0.25s;
-      min-height: 540px;
+      min-height: 520px;
       box-sizing: border-box;
     }
     h2 {
@@ -87,7 +87,7 @@
       width: 100%;
       display: flex;
       justify-content: center;
-      min-height: 190px;
+      min-height: 210px;
       transition: min-height 0.2s;
     }
     .bmi-legend {
@@ -153,41 +153,41 @@
       return { label: "肥胖", color: "#ef4444" };
     }
 
-    // 弧线工具
-    function describeArc(cx, cy, r, startAngle, endAngle) {
-      // 转为弧度
-      let start = polarToCartesian(cx, cy, r, endAngle);
-      let end = polarToCartesian(cx, cy, r, startAngle);
-      let largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-      return [
-        "M", start.x, start.y,
-        "A", r, r, 0, largeArcFlag, 0, end.x, end.y
-      ].join(" ");
-    }
-    function polarToCartesian(cx, cy, r, angleInDegrees) {
-      let angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+    // 极坐标转笛卡尔
+    function polarToCartesian(cx, cy, r, angle) {
+      let a = (angle - 90) * Math.PI / 180;
       return {
-        x: cx + (r * Math.cos(angleInRadians)),
-        y: cy + (r * Math.sin(angleInRadians))
+        x: cx + r * Math.cos(a),
+        y: cy + r * Math.sin(a)
       };
     }
+    // 弧形路径生成
+    function describeArc(cx, cy, r, startAngle, endAngle) {
+      let start = polarToCartesian(cx, cy, r, startAngle);
+      let end = polarToCartesian(cx, cy, r, endAngle);
+      let largeArcFlag = (endAngle - startAngle) <= 180 ? "0" : "1";
+      return [
+        "M", start.x, start.y,
+        "A", r, r, 0, largeArcFlag, 1, end.x, end.y
+      ].join(" ");
+    }
 
-    // 真正专业的半圆仪表盘
     function renderGauge(bmi) {
       const minBMI = 10, maxBMI = 40;
       const cx = 170, cy = 170, r = 120, pointerLen = 96;
-      const angleStart = 180, angleEnd = 0; // 从左到右180°
-      // 区块
+      // 区间到角度的映射: 10->180deg, 40->0deg
+      function bmiToAngle(b) {
+        return 180 - ((b - minBMI) / (maxBMI - minBMI)) * 180;
+      }
+      // 色区块，每一段独立
       const levels = [
         { from: 10, to: 18.5, color: "#f97316" },  // 偏瘦
         { from: 18.5, to: 24, color: "#10b981" },  // 正常
         { from: 24, to: 28, color: "#fbbf24" },    // 超重
         { from: 28, to: 40, color: "#ef4444" },    // 肥胖
       ];
-      // 区块弧线
-      let arcs = levels.map(lv=>{
-        let sa = angleStart - ((lv.from-minBMI)/(maxBMI-minBMI)) * 180;
-        let ea = angleStart - ((lv.to-minBMI)/(maxBMI-minBMI)) * 180;
+      let arcs = levels.map(lv => {
+        let sa = bmiToAngle(lv.from), ea = bmiToAngle(lv.to);
         return `<path d="${describeArc(cx, cy, r, sa, ea)}" stroke="${lv.color}" stroke-width="22" fill="none"/>`;
       }).join('');
       // 刻度
@@ -198,15 +198,11 @@
         { v: 28, label: "28" },
         { v: 40, label: "40" }
       ];
-      let tickLines = ticks.map(tick=>{
-        let t = (tick.v - minBMI)/(maxBMI-minBMI);
-        let ang = angleStart - t*180;
-        let r1 = 134, r2 = 146;
-        let p1 = polarToCartesian(cx, cy, r1, ang);
-        let p2 = polarToCartesian(cx, cy, r2, ang);
-        // 标签
-        let lblR = 156;
-        let lbl = polarToCartesian(cx, cy, lblR, ang);
+      let tickLines = ticks.map(tick => {
+        let ang = bmiToAngle(tick.v);
+        let p1 = polarToCartesian(cx, cy, 134, ang);
+        let p2 = polarToCartesian(cx, cy, 146, ang);
+        let lbl = polarToCartesian(cx, cy, 156, ang);
         return `
           <line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#b4bbda" stroke-width="2"/>
           <text x="${lbl.x}" y="${lbl.y+7}" text-anchor="middle" font-size="13" fill="#8894b5">${tick.label}</text>
@@ -214,11 +210,8 @@
       }).join('');
       // 指针
       let value = Math.max(minBMI, Math.min(maxBMI, bmi));
-      let t = (value-minBMI)/(maxBMI-minBMI);
-      let pointerAngle = angleStart - t*180;
-      let pointerRadian = (pointerAngle-90)*Math.PI/180;
-      let px = cx + pointerLen*Math.cos(pointerRadian);
-      let py = cy + pointerLen*Math.sin(pointerRadian);
+      let ang = bmiToAngle(value);
+      let pr = polarToCartesian(cx, cy, pointerLen, ang);
 
       let svg = `<svg width="340" height="185" viewBox="0 0 340 185">
         <defs>
@@ -230,12 +223,12 @@
         ${arcs}
         ${tickLines}
         <!-- 指针阴影 -->
-        <circle cx="${px}" cy="${py}" r="11" fill="url(#pointer-shadow)" opacity="0.39"/>
-        <!-- 指针（细长线） -->
+        <circle cx="${pr.x}" cy="${pr.y}" r="11" fill="url(#pointer-shadow)" opacity="0.39"/>
+        <!-- 指针 -->
         <g>
           <circle cx="${cx}" cy="${cy}" r="10" fill="#6366f1" opacity="0.15"/>
-          <line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#6366f1" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="${px}" cy="${py}" r="8" fill="#6366f1"/>
+          <line x1="${cx}" y1="${cy}" x2="${pr.x}" y2="${pr.y}" stroke="#6366f1" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="${pr.x}" cy="${pr.y}" r="8" fill="#6366f1"/>
         </g>
         <!-- BMI 文字 -->
         <text x="${cx}" y="106" text-anchor="middle" font-size="30" font-weight="bold" fill="#222">BMI = ${bmi.toFixed(1)}</text>
