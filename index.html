@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BMI 计算器</title>
+  <!-- 引入 cssgauges 库 -->
+  <link href="https://cdn.jsdelivr.net/gh/withaspark/cssgauges/gauges.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/gh/withaspark/cssgauges/gauges.min.js"></script>
   <style>
     body {
       background: linear-gradient(135deg, #e0e7ff 0%, #fff 100%);
@@ -16,15 +19,14 @@
     }
     .bmi-container {
       background: #fff;
-      padding: 2.2rem 2.1rem 1.5rem 2.1rem;
-      border-radius: 28px;
+      padding: 2.5rem 2.1rem 2.1rem 2.1rem;
+      border-radius: 24px;
       box-shadow: 0 8px 40px 0 rgba(31, 38, 135, 0.10);
-      max-width: 470px;
+      max-width: 480px;
       width: 96vw;
       margin: 2.5rem 0;
       text-align: center;
-      transition: box-shadow 0.25s;
-      min-height: 520px;
+      min-height: 540px;
       box-sizing: border-box;
     }
     h2 {
@@ -82,44 +84,31 @@
       font-weight: 600;
       transition: min-height 0.2s;
     }
-    .bmi-gauge {
-      margin: 2.0rem 0 0.5rem 0;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      min-height: 210px;
-      transition: min-height 0.2s;
+    .gauge {
+      display: inline-block;
+      margin: 1.2rem auto 1.6rem auto;
+      width: 320px;
+      height: 160px;
     }
-    .bmi-legend {
-      display: flex;
-      justify-content: space-between;
-      font-size: 1.04rem;
-      color: #555;
-      margin: 0.3rem 0 1.1rem 0;
-      max-width: 355px;
-      margin-left: auto;
-      margin-right: auto;
-      font-weight: 500;
+    .bmi-value {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+      font-weight: bold;
+      color: #4f46e5;
       letter-spacing: 1px;
     }
-    .bmi-legend span {
-      width: 24%;
-      text-align: center;
+    .bmi-type {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
     }
-    @media (max-width: 700px) {
-      .bmi-container {
-        padding: 1.2rem 0.2rem;
-        max-width: 99vw;
-        min-height: 420px;
-        margin: 0.8rem 0;
-      }
-      .bmi-gauge {
-        margin: 1.0rem 0 0.5rem 0;
-      }
-      input[type="number"] {
-        width: 70px;
-      }
-      h2 { font-size: 1.32rem; }
+    .bmi-type.normal { color: #10b981; }
+    .bmi-type.thin { color: #f97316; }
+    .bmi-type.fat { color: #ef4444; }
+    .bmi-type.over { color: #fbbf24; }
+    @media (max-width: 520px) {
+      .gauge { width: 92vw; height: 40vw; min-width: 0; }
+      .bmi-container { padding: 0.7rem 0.2rem; }
     }
   </style>
 </head>
@@ -136,102 +125,16 @@
       <button type="submit">计算</button>
     </form>
     <div id="result"></div>
-    <div class="bmi-gauge" id="gaugeBox"></div>
-    <div class="bmi-legend">
-      <span style="color:#f97316">偏瘦</span>
-      <span style="color:#10b981">正常</span>
-      <span style="color:#fbbf24">超重</span>
-      <span style="color:#ef4444">肥胖</span>
-    </div>
+    <span id="bmi-gauge" class="gauge" data-value="0.5" data-thickness="18" data-units=""></span>
+    <div id="bmi-label" class="bmi-type"></div>
   </div>
 
   <script>
-    // 体型分区
     function getBmiLevel(bmi) {
-      if (bmi < 18.5) return { label: "偏瘦", color: "#f97316" };
-      if (bmi < 24) return { label: "正常", color: "#10b981" };
-      if (bmi < 28) return { label: "超重", color: "#fbbf24" };
-      return { label: "肥胖", color: "#ef4444" };
-    }
-
-    // 饼图扇形路径
-    function pieArc(cx, cy, r1, r2, start, end) {
-      // start/end: 以0为右侧，逆时针，单位弧度
-      let x1 = cx + r1 * Math.cos(start),
-          y1 = cy + r1 * Math.sin(start);
-      let x2 = cx + r2 * Math.cos(start),
-          y2 = cy + r2 * Math.sin(start);
-      let x3 = cx + r2 * Math.cos(end),
-          y3 = cy + r2 * Math.sin(end);
-      let x4 = cx + r1 * Math.cos(end),
-          y4 = cy + r1 * Math.sin(end);
-      let large = end - start > Math.PI ? 1 : 0;
-      return [
-        `M${x1},${y1}`,
-        `A${r1},${r1} 0 ${large} 1 ${x4},${y4}`,
-        `L${x3},${y3}`,
-        `A${r2},${r2} 0 ${large} 0 ${x2},${y2}`,
-        "Z"
-      ].join(" ");
-    }
-
-    function renderGauge(bmi) {
-      const minBMI = 10, maxBMI = 40;
-      const cx = 170, cy = 170, r1 = 108, r2 = 130;
-      // 角度区间: 180°~0°（π~0）
-      function bmiToRad(b) {
-        return Math.PI - (b - minBMI) / (maxBMI - minBMI) * Math.PI;
-      }
-      // 分区配置
-      const levels = [
-        { from: 10, to: 18.5, color: "#f97316" },  // 偏瘦
-        { from: 18.5, to: 24, color: "#10b981" },  // 正常
-        { from: 24, to: 28, color: "#fbbf24" },    // 超重
-        { from: 28, to: 40, color: "#ef4444" },    // 肥胖
-      ];
-      let arcs = levels.map(lv => {
-        let sa = bmiToRad(lv.from), ea = bmiToRad(lv.to);
-        return `<path d="${pieArc(cx, cy, r1, r2, sa, ea)}" fill="${lv.color}"/>`;
-      }).join('');
-      // 刻度
-      const ticks = [
-        { v: 10, label: "10" },
-        { v: 18.5, label: "18.5" },
-        { v: 24, label: "24" },
-        { v: 28, label: "28" },
-        { v: 40, label: "40" }
-      ];
-      let tickLines = ticks.map(tick => {
-        let ang = bmiToRad(tick.v);
-        let p1x = cx + 134 * Math.cos(ang),
-            p1y = cy + 134 * Math.sin(ang);
-        let p2x = cx + 146 * Math.cos(ang),
-            p2y = cy + 146 * Math.sin(ang);
-        let lblx = cx + 158 * Math.cos(ang),
-            lbly = cy + 158 * Math.sin(ang) + 8;
-        return `
-          <line x1="${p1x}" y1="${p1y}" x2="${p2x}" y2="${p2y}" stroke="#b4bbda" stroke-width="2"/>
-          <text x="${lblx}" y="${lbly}" text-anchor="middle" font-size="13" fill="#8894b5">${tick.label}</text>
-        `;
-      }).join('');
-      // 指针
-      let v = Math.max(minBMI, Math.min(maxBMI, bmi));
-      let ang = bmiToRad(v);
-      let px = cx + 110 * Math.cos(ang),
-          py = cy + 110 * Math.sin(ang);
-
-      let svg = `<svg width="340" height="185" viewBox="0 0 340 185">
-        ${arcs}
-        ${tickLines}
-        <circle cx="${px}" cy="${py}" r="11" fill="#6366f1" opacity="0.12"/>
-        <g>
-          <circle cx="${cx}" cy="${cy}" r="10" fill="#6366f1" opacity="0.15"/>
-          <line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#6366f1" stroke-width="7" stroke-linecap="round"/>
-          <circle cx="${px}" cy="${py}" r="8" fill="#6366f1"/>
-        </g>
-        <text x="${cx}" y="106" text-anchor="middle" font-size="30" font-weight="bold" fill="#222">BMI = ${bmi.toFixed(1)}</text>
-      </svg>`;
-      return svg;
+      if (bmi < 18.5) return { label: "偏瘦", className: "thin" };
+      if (bmi < 24) return { label: "正常", className: "normal" };
+      if (bmi < 28) return { label: "超重", className: "over" };
+      return { label: "肥胖", className: "fat" };
     }
 
     document.getElementById('bmiForm').onsubmit = async function (e) {
@@ -239,9 +142,12 @@
       const height = Number(document.getElementById('height').value);
       const weight = Number(document.getElementById('weight').value);
       const resultDiv = document.getElementById('result');
-      const gaugeBox = document.getElementById('gaugeBox');
+      const gauge = document.getElementById('bmi-gauge');
+      const label = document.getElementById('bmi-label');
+
       resultDiv.innerText = '计算中...';
-      gaugeBox.innerHTML = '';
+      gauge.setAttribute('data-value', 0.5);
+      label.innerText = '';
 
       try {
         const res = await fetch('https://bmi-worker.yicuilin123.workers.dev', {
@@ -252,9 +158,15 @@
         const data = await res.json();
         if (data.bmi) {
           const bmiNum = parseFloat(data.bmi);
-          const levelInfo = getBmiLevel(bmiNum);
-          resultDiv.innerHTML = `你的 <b>BMI</b> 是：<b style="color:#6366f1">${bmiNum}</b>，体型：<b style="color:${levelInfo.color}">${levelInfo.label}</b>`;
-          gaugeBox.innerHTML = renderGauge(bmiNum);
+          // 0对应BMI=10，1对应BMI=40
+          let percent = (bmiNum - 10) / 30;
+          percent = Math.max(0, Math.min(1, percent));
+          gauge.setAttribute('data-value', percent.toFixed(3));
+          if (typeof redrawGauge === 'function') redrawGauge(gauge);
+
+          const level = getBmiLevel(bmiNum);
+          resultDiv.innerHTML = `<span class="bmi-value">你的 BMI 是：${bmiNum}</span>`;
+          label.innerHTML = `<span class="bmi-type ${level.className}">体型：${level.label}</span>`;
         } else {
           resultDiv.innerText = '计算失败：' + (data.error || '未知错误');
         }
